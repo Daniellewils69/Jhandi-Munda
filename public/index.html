@@ -33,17 +33,29 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none;background:#3a0f5
 .card{position:relative;perspective:1200px;min-width:0;min-height:0}
 .inner{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .55s cubic-bezier(.3,.7,.3,1)}
 .inner.blank{transform:rotateY(180deg)}
-.face{position:absolute;inset:0;border-radius:2.6vmin;background:var(--ivory);
-  backface-visibility:hidden;-webkit-backface-visibility:hidden;
-  box-shadow:0 .8vmin 2vmin rgba(0,0,0,.45),inset 0 0 0 .35vmin #e6dfcb;transition:box-shadow .2s}
-.back{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;border-radius:2.6vmin;
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;transition:box-shadow .3s}
+/* front: champagne-gold premium card with a double gold frame and a soft sheen */
+.front{--frame:inset 0 0 0 .4vmin #b98a2e,inset 0 0 0 1.2vmin #f7e9c2,inset 0 0 0 1.5vmin #c9a24a;
+  background:linear-gradient(145deg,#fbf1d6 0%,#ecd7a3 45%,#f8e9c0 70%,#e2c37e 100%);
+  box-shadow:var(--frame),0 .8vmin 2vmin rgba(0,0,0,.5)}
+.front::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(115deg,transparent 36%,rgba(255,255,255,.5) 50%,transparent 64%)}
+/* blank state: deep midnight card with a gold foil frame, nothing printed on it */
+.back{transform:rotateY(180deg);
+  background:repeating-linear-gradient(45deg,rgba(212,174,90,.07) 0 .6vmin,transparent .6vmin 1.9vmin),
+    radial-gradient(circle at 50% 38%,#33284d 0%,#1a1430 65%,#0d0a1a 100%);
+  box-shadow:inset 0 0 0 .4vmin #b98a2e,inset 0 0 0 1.4vmin #1a1430,inset 0 0 0 1.7vmin rgba(212,174,90,.75),0 .8vmin 2vmin rgba(0,0,0,.5)}
 .art{position:absolute;inset:13% 20%}
 .art svg,.idx svg{width:100%;height:100%;display:block}
 .idx{position:absolute;width:13%;height:21%;top:5%;left:4.5%}
 .idx.b{top:auto;left:auto;bottom:5%;right:4.5%;transform:rotate(180deg)}
 
 /* drawing animation: symbol keeps changing, card glows */
-.inner.rolling .front{box-shadow:0 0 0 .6vmin var(--marigold),0 0 3vmin rgba(242,168,29,.85),0 .8vmin 2vmin rgba(0,0,0,.45)}
+.inner.rolling .front{box-shadow:var(--frame),0 0 0 .6vmin var(--marigold),0 0 3vmin rgba(242,168,29,.85),0 .8vmin 2vmin rgba(0,0,0,.45)}
+/* matching cards (two or more of the same symbol): lift up and glow */
+.inner.match{transform:translateY(-1.9vmin)}
+.inner.match .front{box-shadow:var(--frame),0 0 0 .5vmin #ffd45a,0 0 3.4vmin rgba(255,212,90,.95),0 2.4vmin 3vmin rgba(0,0,0,.5)}
 .inner.rolling .art{animation:tick .16s ease-in-out infinite alternate}
 @keyframes tick{from{transform:scale(.88) translateY(7%);filter:blur(1.2px)}to{transform:scale(1.02) translateY(-5%);filter:blur(.4px)}}
 .inner.land .art{animation:pop .45s cubic-bezier(.3,1.6,.5,1)}
@@ -77,14 +89,14 @@ const RED = "#c8202f", BLACK = "#15151f", GOLD = "#f0b323", GOLD_D = "#8a5a00";
 const svg = body => '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">' + body + '</svg>';
 
 const flagHalf = fill => (
-    '<line x1="38" y1="10" x2="80" y2="96" stroke="#6b3f12" stroke-width="4.5" stroke-linecap="round"/>' +
+    '<line x1="38" y1="10" x2="80" y2="96" stroke="#2b1d0e" stroke-width="4.5" stroke-linecap="round"/>' +
     '<circle cx="38" cy="9" r="4" fill="'+GOLD+'" stroke="'+GOLD_D+'" stroke-width="1.5"/>' +
-    '<path d="M38 12C28 6 18 19 7 12L13 34C23 40 33 28 47 33Z" fill="'+fill+'" stroke="#00000055" stroke-width="1.6" stroke-linejoin="round"/>');
+    '<path d="M38 12C28 6 18 19 7 12L13 34C23 40 33 28 47 33Z" fill="'+fill+'" stroke="#4a4a5c" stroke-width="1.2" stroke-linejoin="round"/>');
 const ART = {
   flag: svg(
-    '<g>' + flagHalf("#e4572e") + '</g>' +
-    '<g transform="translate(100 0) scale(-1 1)">' + flagHalf("#f2a81d") + '</g>' +
-    '<circle cx="50" cy="35" r="3.2" fill="#6b3f12"/>'),
+    '<g>' + flagHalf(BLACK) + '</g>' +
+    '<g transform="translate(100 0) scale(-1 1)">' + flagHalf(BLACK) + '</g>' +
+    '<circle cx="50" cy="35" r="3.2" fill="#2b1d0e"/>'),
   crown: svg(
     '<path d="M12 78L7 32L30 54L50 16L70 54L93 32L88 78Z" fill="'+BLACK+'" stroke="#000" stroke-width="3" stroke-linejoin="round"/>' +
     '<rect x="11" y="80" width="78" height="14" rx="3" fill="'+BLACK+'" stroke="#000" stroke-width="3"/>' +
@@ -135,7 +147,7 @@ function showRandom(c){
 
 function reset(){
   run++;
-  cards.forEach(c => { clearInterval(c.timer); c.inner.classList.remove("rolling", "land"); c.inner.classList.add("blank"); });
+  cards.forEach(c => { clearInterval(c.timer); c.inner.classList.remove("rolling", "land", "match"); c.inner.classList.add("blank"); });
   setMode("draw");
 }
 
@@ -145,7 +157,7 @@ async function startDraw(){
   cards.forEach((c, i) => {
     clearInterval(c.timer);
     showRandom(c);
-    c.inner.classList.remove("blank", "land");
+    c.inner.classList.remove("blank", "land", "match");
     c.inner.classList.add("rolling");
     c.timer = setInterval(() => showRandom(c), 85 + i * 14);
   });
@@ -173,6 +185,11 @@ async function startDraw(){
     c.inner.classList.add("land");
     await wait(380);
   }
+  await wait(150);
+  if (my !== run) return;
+  const counts = {};
+  dice.forEach(s => counts[s] = (counts[s] || 0) + 1);
+  cards.forEach((c, i) => { if (counts[dice[i]] >= 2) c.inner.classList.add("match"); });
 }
 
 btn.onclick = () => { goFullscreen(); if (mode === "draw") startDraw(); else reset(); };
