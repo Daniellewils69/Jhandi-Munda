@@ -1,1 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Jhandi Munda</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rozha+One&family=DM+Sans:wght@400;600;700&display=swap">
+<style>
+:root{
+  --cloth:#0d5650; --cloth-dark:#093f3b; --ivory:#fbf4e4; --marigold:#f2a81d;
+  --vermilion:#d63b2f; --ink:#1a1b2e;
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{
+  background:var(--cloth);
+  background-image:radial-gradient(circle at 50% 0%,#12706a 0%,var(--cloth) 55%,var(--cloth-dark) 100%);
+  color:var(--ivory);font-family:"DM Sans",system-ui,sans-serif;
+  padding:max(16px,env(safe-area-inset-top)) 16px max(24px,env(safe-area-inset-bottom));
+}
+main{max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;justify-content:space-between;align-items:flex-end}
+h1{font-family:"Rozha One",Georgia,serif;font-size:2rem;font-weight:400;color:var(--marigold);line-height:1}
+.bank{text-align:right;font-size:.85rem;opacity:.9}
+.bank b{display:block;font-size:1.5rem;color:var(--ivory)}
+.board{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tile{
+  position:relative;aspect-ratio:1;border:2px solid var(--marigold);border-radius:14px;
+  background:var(--ivory);color:var(--ink);font-size:2.6rem;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  font-family:inherit;touch-action:manipulation;
+}
+.tile small{font-size:.8rem;font-weight:600}
+.tile.red{color:var(--vermilion)}
+.tile:active{transform:scale(.97)}
+.tile .bet{
+  position:absolute;top:-8px;right:-6px;min-width:34px;padding:2px 8px;border-radius:999px;
+  background:var(--vermilion);color:#fff;font-size:.8rem;font-weight:700;display:none;
+}
+.tile.has-bet .bet{display:block}
+.tile.hit{background:var(--marigold);box-shadow:0 0 0 4px rgba(242,168,29,.35)}
+.stakes{display:flex;gap:8px;align-items:center}
+.stakes span{font-size:.9rem;margin-right:4px}
+.chip{
+  flex:1;padding:10px 0;border-radius:999px;border:2px solid var(--ivory);background:transparent;
+  color:var(--ivory);font:600 1rem "DM Sans",sans-serif;cursor:pointer;
+}
+.chip[aria-pressed="true"]{background:var(--ivory);color:var(--cloth-dark)}
+.tray{
+  display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding:14px;
+  background:var(--cloth-dark);border-radius:14px;
+}
+.die{
+  aspect-ratio:1;background:var(--ivory);color:var(--ink);border-radius:10px;
+  display:flex;align-items:center;justify-content:center;font-size:1.5rem;
+}
+.die.red{color:var(--vermilion)}
+.die.rolling{animation:shake .12s infinite}
+@keyframes shake{50%{transform:rotate(8deg) translateY(-2px)}}
+.msg{min-height:3.2em;text-align:center;font-size:1.05rem;font-weight:600}
+.msg.win{color:var(--marigold)}
+.draw{
+  padding:18px;border:0;border-radius:16px;background:var(--marigold);color:var(--ink);
+  font:700 1.3rem "DM Sans",sans-serif;cursor:pointer;touch-action:manipulation;
+}
+.draw:disabled{opacity:.6}
+.row{display:flex;justify-content:space-between}
+.link{background:none;border:0;color:var(--ivory);opacity:.8;text-decoration:underline;font:inherit;cursor:pointer}
+@media (prefers-reduced-motion:reduce){.die.rolling{animation:none}}
+:focus-visible{outline:3px solid var(--marigold);outline-offset:2px}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Jhandi Munda</h1>
+    <div class="bank">Play coins<b id="points">1000</b></div>
+  </header>
 
+  <div class="board" id="board"></div>
+
+  <div class="stakes" role="group" aria-label="Chip size">
+    <span>Chip</span>
+    <button class="chip" data-stake="10" aria-pressed="true">10</button>
+    <button class="chip" data-stake="50" aria-pressed="false">50</button>
+    <button class="chip" data-stake="100" aria-pressed="false">100</button>
+  </div>
+
+  <div class="tray" id="tray" aria-live="polite"></div>
+  <p class="msg" id="msg">Tap symbols to place coins, then press Draw.</p>
+
+  <button class="draw" id="draw">Draw</button>
+
+  <div class="row">
+    <button class="link" id="clear">Clear bets</button>
+    <button class="link" id="reset">Reset coins</button>
+  </div>
+</main>
+
+<script>
+const SYMBOLS = ["flag","crown","heart","spade","diamond","club"];
+const ICON  = {flag:"🚩",crown:"👑",heart:"♥",spade:"♠",diamond:"♦",club:"♣"};
+const LABEL = {flag:"Flag",crown:"Crown",heart:"Heart",spade:"Spade",diamond:"Diamond",club:"Club"};
+const isRed = s => s === "heart" || s === "diamond" || s === "flag";
+const START = 1000;
+
+let points = START, stake = 10, bets = {}, busy = false;
+try { const p = parseInt(localStorage.getItem("jm-points"), 10); if (p >= 0) points = p; } catch (e) {}
+
+const $ = id => document.getElementById(id);
+const board = $("board"), tray = $("tray"), msg = $("msg");
+
+function reserved(){ return Object.values(bets).reduce((a,b)=>a+b,0); }
+function save(){ try { localStorage.setItem("jm-points", points); } catch (e) {} }
+
+function render(){
+  $("points").textContent = points - reserved();
+  SYMBOLS.forEach(s => {
+    const t = board.querySelector('[data-s="'+s+'"]');
+    t.classList.toggle("has-bet", !!bets[s]);
+    t.querySelector(".bet").textContent = bets[s] || "";
+  });
+}
+
+SYMBOLS.forEach(s => {
+  const b = document.createElement("button");
+  b.className = "tile" + (isRed(s) ? " red" : "");
+  b.dataset.s = s;
+  b.innerHTML = '<span class="bet"></span><span>'+ICON[s]+'</span><small>'+LABEL[s]+'</small>';
+  b.onclick = () => {
+    if (busy) return;
+    if (points - reserved() < stake) { msg.className = "msg"; msg.textContent = "Not enough coins for that chip."; return; }
+    bets[s] = (bets[s] || 0) + stake;
+    render();
+  };
+  board.appendChild(b);
+});
+
+for (let i = 0; i < 6; i++) { const d = document.createElement("div"); d.className = "die"; d.textContent = "?"; tray.appendChild(d); }
+const dice = [...tray.children];
+function showDie(el, s){ el.textContent = ICON[s]; el.classList.toggle("red", isRed(s)); }
+
+document.querySelectorAll(".chip").forEach(c => c.onclick = () => {
+  stake = +c.dataset.stake;
+  document.querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", x === c));
+});
+$("clear").onclick = () => { if (!busy) { bets = {}; render(); } };
+$("reset").onclick = () => { if (!busy) { points = START; bets = {}; save(); render(); msg.textContent = "Coins reset."; } };
+
+$("draw").onclick = async () => {
+  if (busy) return;
+  busy = true; $("draw").disabled = true;
+  board.querySelectorAll(".tile").forEach(t => t.classList.remove("hit"));
+  msg.className = "msg"; msg.textContent = "Rolling…";
+  dice.forEach(d => d.classList.add("rolling"));
+  const spin = setInterval(() => dice.forEach(d => showDie(d, SYMBOLS[Math.floor(Math.random()*6)])), 90);
+
+  let result;
+  try {
+    const [r] = await Promise.all([
+      fetch("/api/draw", { method: "POST" }).then(x => { if (!x.ok) throw new Error(); return x.json(); }),
+      new Promise(ok => setTimeout(ok, 1400))
+    ]);
+    result = r.dice;
+  } catch (e) {
+    clearInterval(spin); dice.forEach(d => d.classList.remove("rolling"));
+    msg.textContent = "Couldn't reach the server. Try Draw again.";
+    busy = false; $("draw").disabled = false; return;
+  }
+
+  clearInterval(spin);
+  dice.forEach((d, i) => { d.classList.remove("rolling"); showDie(d, result[i]); });
+
+  const counts = {}; result.forEach(s => counts[s] = (counts[s] || 0) + 1);
+  Object.keys(counts).forEach(s => board.querySelector('[data-s="'+s+'"]').classList.add("hit"));
+
+  let net = 0;
+  Object.keys(bets).forEach(s => { net += counts[s] ? bets[s] * counts[s] : -bets[s]; });
+  points += net; bets = {}; save(); render();
+
+  if (net > 0) { msg.className = "msg win"; msg.textContent = "You won " + net + " coins!"; }
+  else if (net < 0) { msg.textContent = "You lost " + (-net) + " coins."; }
+  else { msg.textContent = Object.keys(counts).length ? "Drawn. Place bets for the next round." : ""; }
+
+  if (points <= 0) { points = START; save(); render(); msg.textContent += " Out of coins, so you're topped up to " + START + "."; }
+  busy = false; $("draw").disabled = false;
+};
+render();
+</script>
+</body>
+</html>
