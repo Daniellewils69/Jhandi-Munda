@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Host controls</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui,sans-serif;background:#fbf4e4;color:#1a1b2e;margin:0;padding:20px}
+main{max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+h1{font-size:1.4rem;margin:0}
+label{font-weight:600;font-size:.9rem}
+input,select,button{font:inherit;padding:12px;border-radius:10px;border:2px solid #1a1b2e;background:#fff;width:100%}
+button{background:#1a1b2e;color:#fff;font-weight:700;cursor:pointer}
+button.alt{background:#fff;color:#1a1b2e}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+#status{padding:12px;border-radius:10px;background:#fff;border:2px dashed #1a1b2e;min-height:3em}
+</style>
+</head>
+<body>
+<main>
+  <h1>Host controls</h1>
+  <div>
+    <label for="key">Admin key</label>
+    <input id="key" type="password" autocomplete="off">
+  </div>
+  <div>
+    <label>Result for the next draw (6 dice)</label>
+    <div class="grid" id="grid"></div>
+  </div>
+  <button id="set">Set next draw</button>
+  <button class="alt" id="clear">Clear (next draw is random)</button>
+  <div id="status">Enter your key, then set a result.</div>
+</main>
+<script>
+const SYMBOLS = ["flag","crown","heart","spade","diamond","club"];
+const NAME = {flag:"Flag",crown:"Crown",heart:"Heart",spade:"Spade",diamond:"Diamond",club:"Club"};
+const grid = document.getElementById("grid"), keyEl = document.getElementById("key"), st = document.getElementById("status");
+try { keyEl.value = sessionStorage.getItem("jm-key") || ""; } catch (e) {}
+
+for (let i = 0; i < 6; i++) {
+  const s = document.createElement("select");
+  s.setAttribute("aria-label", "Die " + (i + 1));
+  SYMBOLS.forEach(v => { const o = document.createElement("option"); o.value = v; o.textContent = NAME[v]; s.appendChild(o); });
+  grid.appendChild(s);
+}
+const picks = () => [...grid.children].map(s => s.value);
+
+async function call(path, body) {
+  try { sessionStorage.setItem("jm-key", keyEl.value); } catch (e) {}
+  const res = await fetch(path, {
+    method: body === undefined ? "GET" : "POST",
+    headers: { "Content-Type": "application/json", "x-admin-key": keyEl.value },
+    body: body === undefined ? undefined : JSON.stringify(body)
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Request failed");
+  return data;
+}
+const show = q => q ? "Next draw is set: " + q.map(x => NAME[x]).join(", ") : "No result set. The next draw will be random.";
+
+document.getElementById("set").onclick = async () => {
+  try { const d = await call("/api/admin/set", { dice: picks() }); st.textContent = show(d.queued); }
+  catch (e) { st.textContent = e.message; }
+};
+document.getElementById("clear").onclick = async () => {
+  try { const d = await call("/api/admin/clear", {}); st.textContent = show(d.queued); }
+  catch (e) { st.textContent = e.message; }
+};
+keyEl.addEventListener("change", async () => {
+  try { const d = await call("/api/admin/status"); st.textContent = show(d.queued); } catch (e) { st.textContent = e.message; }
+});
+</script>
+</body>
+</html>
