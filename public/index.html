@@ -35,12 +35,10 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none;background:#3a0f5
 .inner.blank{transform:rotateY(180deg)}
 .face{position:absolute;inset:0;border-radius:2.6vmin;
   backface-visibility:hidden;-webkit-backface-visibility:hidden;transition:box-shadow .3s}
-/* front: champagne-gold premium card with a double gold frame and a soft sheen */
-.front{--frame:inset 0 0 0 .4vmin #b98a2e,inset 0 0 0 1.2vmin #f7e9c2,inset 0 0 0 1.5vmin #c9a24a;
-  background:linear-gradient(145deg,#fbf1d6 0%,#ecd7a3 45%,#f8e9c0 70%,#e2c37e 100%);
+/* front: premium pearl-white card with a fine double gold frame (no glow on the face) */
+.front{--frame:inset 0 0 0 .4vmin #c9a24a,inset 0 0 0 1.2vmin #fff,inset 0 0 0 1.5vmin #e2c97f;
+  background:linear-gradient(160deg,#ffffff 0%,#fbf9f3 55%,#f3eee0 100%);
   box-shadow:var(--frame),0 .8vmin 2vmin rgba(0,0,0,.5)}
-.front::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
-  background:linear-gradient(115deg,transparent 36%,rgba(255,255,255,.5) 50%,transparent 64%)}
 /* blank state: deep midnight card with a gold foil frame, nothing printed on it */
 .back{transform:rotateY(180deg);
   background:repeating-linear-gradient(45deg,rgba(212,174,90,.07) 0 .6vmin,transparent .6vmin 1.9vmin),
