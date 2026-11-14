@@ -2,190 +2,176 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#3a0f52">
 <title>Jhandi Munda</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rozha+One&family=DM+Sans:wght@400;600;700&display=swap">
 <style>
-:root{
-  --cloth:#0d5650; --cloth-dark:#093f3b; --ivory:#fbf4e4; --marigold:#f2a81d;
-  --vermilion:#d63b2f; --ink:#1a1b2e;
+:root{--gap:2.2vmin;--ivory:#fffdf6;--marigold:#f2a81d;--ink:#1a1b2e}
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none;background:#3a0f52;
+  user-select:none;-webkit-user-select:none;touch-action:manipulation;
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+
+/* Always plays in landscape: in portrait the layout is turned 90 degrees. */
+#app{position:fixed;inset:0;display:flex;gap:var(--gap);padding:var(--gap);
+  background:linear-gradient(125deg,#2a0b4d,#6b1b6e,#c93a4f,#f08a24,#6b1b6e,#2a0b4d);
+  background-size:300% 300%;animation:flow 22s ease-in-out infinite}
+#app::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 50%,transparent 45%,rgba(20,4,36,.55) 100%)}
+@keyframes flow{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+@media (orientation:portrait){
+  #app{inset:auto;top:0;left:100%;width:100vh;height:100vw;transform-origin:0 0;transform:rotate(90deg)}
 }
-*{box-sizing:border-box;margin:0}
-html,body{height:100%}
-body{
-  background:var(--cloth);
-  background-image:radial-gradient(circle at 50% 0%,#12706a 0%,var(--cloth) 55%,var(--cloth-dark) 100%);
-  color:var(--ivory);font-family:"DM Sans",system-ui,sans-serif;
-  padding:max(16px,env(safe-area-inset-top)) 16px max(24px,env(safe-area-inset-bottom));
+@supports (width:100dvh){
+  @media (orientation:portrait){#app{width:100dvh;height:100dvw}}
 }
-main{max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
-header{display:flex;justify-content:space-between;align-items:flex-end}
-h1{font-family:"Rozha One",Georgia,serif;font-size:2rem;font-weight:400;color:var(--marigold);line-height:1}
-.bank{text-align:right;font-size:.85rem;opacity:.9}
-.bank b{display:block;font-size:1.5rem;color:var(--ivory)}
-.board{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.tile{
-  position:relative;aspect-ratio:1;border:2px solid var(--marigold);border-radius:14px;
-  background:var(--ivory);color:var(--ink);font-size:2.6rem;cursor:pointer;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
-  font-family:inherit;touch-action:manipulation;
+
+.grid{position:relative;flex:1;min-width:0;min-height:0;display:grid;gap:var(--gap);
+  grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr)}
+.card{position:relative;perspective:1200px;min-width:0;min-height:0}
+.inner{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .55s cubic-bezier(.3,.7,.3,1)}
+.inner.blank{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;border-radius:2.6vmin;background:var(--ivory);
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  box-shadow:0 .8vmin 2vmin rgba(0,0,0,.45),inset 0 0 0 .35vmin #e6dfcb;transition:box-shadow .2s}
+.back{transform:rotateY(180deg)}
+.art{position:absolute;inset:13% 20%}
+.art svg,.idx svg{width:100%;height:100%;display:block}
+.idx{position:absolute;width:13%;height:21%;top:5%;left:4.5%}
+.idx.b{top:auto;left:auto;bottom:5%;right:4.5%;transform:rotate(180deg)}
+
+/* drawing animation: symbol keeps changing, card glows */
+.inner.rolling .front{box-shadow:0 0 0 .6vmin var(--marigold),0 0 3vmin rgba(242,168,29,.85),0 .8vmin 2vmin rgba(0,0,0,.45)}
+.inner.rolling .art{animation:tick .16s ease-in-out infinite alternate}
+@keyframes tick{from{transform:scale(.88) translateY(7%);filter:blur(1.2px)}to{transform:scale(1.02) translateY(-5%);filter:blur(.4px)}}
+.inner.land .art{animation:pop .45s cubic-bezier(.3,1.6,.5,1)}
+@keyframes pop{from{transform:scale(.6)}to{transform:scale(1)}}
+
+.rail{position:relative;width:clamp(80px,14vmax,140px);display:flex}
+#go{flex:1;border:0;border-radius:2.6vmin;font:800 clamp(17px,3.6vmin,30px) system-ui,sans-serif;
+  cursor:pointer;touch-action:manipulation;box-shadow:0 .8vmin 2vmin rgba(0,0,0,.45);transition:background .2s,color .2s}
+#go:active{transform:scale(.96)}
+#go.draw{background:var(--marigold);color:var(--ink)}
+#go.ready{background:var(--ivory);color:#6b1b6e}
+#go.err{animation:err .3s 2}
+@keyframes err{50%{transform:translateX(-6px)}}
+:focus-visible{outline:3px solid #fff;outline-offset:2px}
+@media (prefers-reduced-motion:reduce){
+  #app{animation:none}
+  .inner{transition-duration:.01s}
+  .inner.rolling .art,.inner.land .art{animation:none}
 }
-.tile small{font-size:.8rem;font-weight:600}
-.tile.red{color:var(--vermilion)}
-.tile:active{transform:scale(.97)}
-.tile .bet{
-  position:absolute;top:-8px;right:-6px;min-width:34px;padding:2px 8px;border-radius:999px;
-  background:var(--vermilion);color:#fff;font-size:.8rem;font-weight:700;display:none;
-}
-.tile.has-bet .bet{display:block}
-.tile.hit{background:var(--marigold);box-shadow:0 0 0 4px rgba(242,168,29,.35)}
-.stakes{display:flex;gap:8px;align-items:center}
-.stakes span{font-size:.9rem;margin-right:4px}
-.chip{
-  flex:1;padding:10px 0;border-radius:999px;border:2px solid var(--ivory);background:transparent;
-  color:var(--ivory);font:600 1rem "DM Sans",sans-serif;cursor:pointer;
-}
-.chip[aria-pressed="true"]{background:var(--ivory);color:var(--cloth-dark)}
-.tray{
-  display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding:14px;
-  background:var(--cloth-dark);border-radius:14px;
-}
-.die{
-  aspect-ratio:1;background:var(--ivory);color:var(--ink);border-radius:10px;
-  display:flex;align-items:center;justify-content:center;font-size:1.5rem;
-}
-.die.red{color:var(--vermilion)}
-.die.rolling{animation:shake .12s infinite}
-@keyframes shake{50%{transform:rotate(8deg) translateY(-2px)}}
-.msg{min-height:3.2em;text-align:center;font-size:1.05rem;font-weight:600}
-.msg.win{color:var(--marigold)}
-.draw{
-  padding:18px;border:0;border-radius:16px;background:var(--marigold);color:var(--ink);
-  font:700 1.3rem "DM Sans",sans-serif;cursor:pointer;touch-action:manipulation;
-}
-.draw:disabled{opacity:.6}
-.row{display:flex;justify-content:space-between}
-.link{background:none;border:0;color:var(--ivory);opacity:.8;text-decoration:underline;font:inherit;cursor:pointer}
-@media (prefers-reduced-motion:reduce){.die.rolling{animation:none}}
-:focus-visible{outline:3px solid var(--marigold);outline-offset:2px}
 </style>
 </head>
 <body>
-<main>
-  <header>
-    <h1>Jhandi Munda</h1>
-    <div class="bank">Play coins<b id="points">1000</b></div>
-  </header>
-
-  <div class="board" id="board"></div>
-
-  <div class="stakes" role="group" aria-label="Chip size">
-    <span>Chip</span>
-    <button class="chip" data-stake="10" aria-pressed="true">10</button>
-    <button class="chip" data-stake="50" aria-pressed="false">50</button>
-    <button class="chip" data-stake="100" aria-pressed="false">100</button>
-  </div>
-
-  <div class="tray" id="tray" aria-live="polite"></div>
-  <p class="msg" id="msg">Tap symbols to place coins, then press Draw.</p>
-
-  <button class="draw" id="draw">Draw</button>
-
-  <div class="row">
-    <button class="link" id="clear">Clear bets</button>
-    <button class="link" id="reset">Reset coins</button>
-  </div>
-</main>
+<div id="app">
+  <div class="grid" id="grid"></div>
+  <div class="rail"><button id="go" class="draw">Draw</button></div>
+</div>
 
 <script>
 const SYMBOLS = ["flag","crown","heart","spade","diamond","club"];
-const ICON  = {flag:"🚩",crown:"👑",heart:"♥",spade:"♠",diamond:"♦",club:"♣"};
-const LABEL = {flag:"Flag",crown:"Crown",heart:"Heart",spade:"Spade",diamond:"Diamond",club:"Club"};
-const isRed = s => s === "heart" || s === "diamond" || s === "flag";
-const START = 1000;
+const RED = "#c8202f", BLACK = "#15151f", GOLD = "#f0b323", GOLD_D = "#8a5a00";
+const svg = body => '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">' + body + '</svg>';
 
-let points = START, stake = 10, bets = {}, busy = false;
-try { const p = parseInt(localStorage.getItem("jm-points"), 10); if (p >= 0) points = p; } catch (e) {}
+const ART = {
+  flag: svg(
+    '<rect x="20" y="9" width="6" height="89" rx="2" fill="#6b3f12"/>' +
+    '<circle cx="23" cy="8" r="5.5" fill="'+GOLD+'" stroke="'+GOLD_D+'" stroke-width="1.5"/>' +
+    '<path d="M26 14C44 7 58 22 76 15C84 12 90 12 94 13L94 56C88 55 82 56 76 59C58 66 44 51 26 58Z" fill="#e4572e" stroke="#9c2a10" stroke-width="2" stroke-linejoin="round"/>' +
+    '<circle cx="60" cy="36" r="9" fill="#ffd45a" stroke="#c98f00" stroke-width="1.5"/>'),
+  crown: svg(
+    '<path d="M12 78L7 32L30 54L50 16L70 54L93 32L88 78Z" fill="'+GOLD+'" stroke="'+GOLD_D+'" stroke-width="3" stroke-linejoin="round"/>' +
+    '<rect x="11" y="80" width="78" height="14" rx="3" fill="'+GOLD+'" stroke="'+GOLD_D+'" stroke-width="3"/>' +
+    '<circle cx="7" cy="30" r="5" fill="'+GOLD+'" stroke="'+GOLD_D+'" stroke-width="2"/>' +
+    '<circle cx="50" cy="13" r="5" fill="'+GOLD+'" stroke="'+GOLD_D+'" stroke-width="2"/>' +
+    '<circle cx="93" cy="30" r="5" fill="'+GOLD+'" stroke="'+GOLD_D+'" stroke-width="2"/>' +
+    '<circle cx="28" cy="87" r="3.4" fill="'+RED+'"/><circle cx="50" cy="87" r="3.4" fill="#2a62c9"/><circle cx="72" cy="87" r="3.4" fill="'+RED+'"/>'),
+  heart: svg('<path d="M50 90C20 64 7 47 7 30C7 17 17 8 30 8C39 8 46 13 50 21C54 13 61 8 70 8C83 8 93 17 93 30C93 47 80 64 50 90Z" fill="'+RED+'"/>'),
+  spade: svg('<path d="M50 4C50 4 92 34 92 58C92 72 80 81 68 81C60 81 54 77 52 71C53 81 57 90 66 96L34 96C43 90 47 81 48 71C46 77 40 81 32 81C20 81 8 72 8 58C8 34 50 4 50 4Z" fill="'+BLACK+'"/>'),
+  diamond: svg('<path d="M50 3C58 24 74 38 91 50C74 62 58 76 50 97C42 76 26 62 9 50C26 38 42 24 50 3Z" fill="'+RED+'"/>'),
+  club: svg(
+    '<g fill="'+BLACK+'"><circle cx="50" cy="28" r="21"/><circle cx="26" cy="62" r="21"/><circle cx="74" cy="62" r="21"/>' +
+    '<circle cx="50" cy="54" r="12"/><path d="M50 50C50 74 46 86 37 96L63 96C54 86 50 74 50 50Z"/></g>')
+};
 
-const $ = id => document.getElementById(id);
-const board = $("board"), tray = $("tray"), msg = $("msg");
-
-function reserved(){ return Object.values(bets).reduce((a,b)=>a+b,0); }
-function save(){ try { localStorage.setItem("jm-points", points); } catch (e) {} }
-
-function render(){
-  $("points").textContent = points - reserved();
-  SYMBOLS.forEach(s => {
-    const t = board.querySelector('[data-s="'+s+'"]');
-    t.classList.toggle("has-bet", !!bets[s]);
-    t.querySelector(".bet").textContent = bets[s] || "";
-  });
+const wait = ms => new Promise(r => setTimeout(r, ms));
+function face(s){
+  return '<div class="idx">'+ART[s]+'</div><div class="art">'+ART[s]+'</div><div class="idx b">'+ART[s]+'</div>';
 }
 
-SYMBOLS.forEach(s => {
-  const b = document.createElement("button");
-  b.className = "tile" + (isRed(s) ? " red" : "");
-  b.dataset.s = s;
-  b.innerHTML = '<span class="bet"></span><span>'+ICON[s]+'</span><small>'+LABEL[s]+'</small>';
-  b.onclick = () => {
-    if (busy) return;
-    if (points - reserved() < stake) { msg.className = "msg"; msg.textContent = "Not enough coins for that chip."; return; }
-    bets[s] = (bets[s] || 0) + stake;
-    render();
-  };
-  board.appendChild(b);
-});
+const grid = document.getElementById("grid");
+const cards = [];
+for (let i = 0; i < 6; i++) {
+  const c = document.createElement("div");
+  c.className = "card";
+  c.innerHTML = '<div class="inner blank"><div class="face front"></div><div class="face back"></div></div>';
+  grid.appendChild(c);
+  cards.push({ inner: c.querySelector(".inner"), front: c.querySelector(".front"), cur: null, timer: null });
+}
 
-for (let i = 0; i < 6; i++) { const d = document.createElement("div"); d.className = "die"; d.textContent = "?"; tray.appendChild(d); }
-const dice = [...tray.children];
-function showDie(el, s){ el.textContent = ICON[s]; el.classList.toggle("red", isRed(s)); }
+const btn = document.getElementById("go");
+let run = 0, mode = "draw";
+function setMode(m){ mode = m; btn.textContent = m === "draw" ? "Draw" : "Ready"; btn.className = m; }
 
-document.querySelectorAll(".chip").forEach(c => c.onclick = () => {
-  stake = +c.dataset.stake;
-  document.querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", x === c));
-});
-$("clear").onclick = () => { if (!busy) { bets = {}; render(); } };
-$("reset").onclick = () => { if (!busy) { points = START; bets = {}; save(); render(); msg.textContent = "Coins reset."; } };
+function goFullscreen(){
+  try {
+    const el = document.documentElement;
+    const p = el.requestFullscreen ? el.requestFullscreen() : (el.webkitRequestFullscreen && el.webkitRequestFullscreen());
+    Promise.resolve(p).then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock("landscape")).catch(() => {});
+  } catch (e) {}
+}
 
-$("draw").onclick = async () => {
-  if (busy) return;
-  busy = true; $("draw").disabled = true;
-  board.querySelectorAll(".tile").forEach(t => t.classList.remove("hit"));
-  msg.className = "msg"; msg.textContent = "Rolling…";
-  dice.forEach(d => d.classList.add("rolling"));
-  const spin = setInterval(() => dice.forEach(d => showDie(d, SYMBOLS[Math.floor(Math.random()*6)])), 90);
+function showRandom(c){
+  let s; do { s = SYMBOLS[Math.floor(Math.random() * 6)]; } while (s === c.cur);
+  c.cur = s; c.front.innerHTML = face(s);
+}
 
-  let result;
+function reset(){
+  run++;
+  cards.forEach(c => { clearInterval(c.timer); c.inner.classList.remove("rolling", "land"); c.inner.classList.add("blank"); });
+  setMode("draw");
+}
+
+async function startDraw(){
+  const my = ++run;
+  setMode("ready");
+  cards.forEach((c, i) => {
+    clearInterval(c.timer);
+    showRandom(c);
+    c.inner.classList.remove("blank", "land");
+    c.inner.classList.add("rolling");
+    c.timer = setInterval(() => showRandom(c), 85 + i * 14);
+  });
+
+  let dice;
   try {
     const [r] = await Promise.all([
       fetch("/api/draw", { method: "POST" }).then(x => { if (!x.ok) throw new Error(); return x.json(); }),
-      new Promise(ok => setTimeout(ok, 1400))
+      wait(1700)
     ]);
-    result = r.dice;
+    dice = r.dice;
   } catch (e) {
-    clearInterval(spin); dice.forEach(d => d.classList.remove("rolling"));
-    msg.textContent = "Couldn't reach the server. Try Draw again.";
-    busy = false; $("draw").disabled = false; return;
+    if (my !== run) return;
+    reset();
+    btn.classList.add("err"); setTimeout(() => btn.classList.remove("err"), 700);
+    return;
   }
 
-  clearInterval(spin);
-  dice.forEach((d, i) => { d.classList.remove("rolling"); showDie(d, result[i]); });
+  for (let i = 0; i < 6; i++) {
+    if (my !== run) return;
+    const c = cards[i];
+    clearInterval(c.timer);
+    c.cur = dice[i]; c.front.innerHTML = face(dice[i]);
+    c.inner.classList.remove("rolling");
+    c.inner.classList.add("land");
+    await wait(380);
+  }
+}
 
-  const counts = {}; result.forEach(s => counts[s] = (counts[s] || 0) + 1);
-  Object.keys(counts).forEach(s => board.querySelector('[data-s="'+s+'"]').classList.add("hit"));
-
-  let net = 0;
-  Object.keys(bets).forEach(s => { net += counts[s] ? bets[s] * counts[s] : -bets[s]; });
-  points += net; bets = {}; save(); render();
-
-  if (net > 0) { msg.className = "msg win"; msg.textContent = "You won " + net + " coins!"; }
-  else if (net < 0) { msg.textContent = "You lost " + (-net) + " coins."; }
-  else { msg.textContent = Object.keys(counts).length ? "Drawn. Place bets for the next round." : ""; }
-
-  if (points <= 0) { points = START; save(); render(); msg.textContent += " Out of coins, so you're topped up to " + START + "."; }
-  busy = false; $("draw").disabled = false;
-};
-render();
+btn.onclick = () => { goFullscreen(); if (mode === "draw") startDraw(); else reset(); };
 </script>
 </body>
 </html>
