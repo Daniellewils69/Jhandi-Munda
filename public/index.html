@@ -7,6 +7,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#3a0f52">
 <title>Jhandi Munda</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
 <style>
 :root{--gap:2.2vmin;--ivory:#fffdf6;--marigold:#f2a81d;--ink:#1a1b2e}
 *{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
@@ -68,6 +71,49 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none;background:#3a0f5
 #go.err{animation:err .3s 2}
 @keyframes err{50%{transform:translateX(-6px)}}
 :focus-visible{outline:3px solid #fff;outline-offset:2px}
+input{user-select:text;-webkit-user-select:text}
+
+/* ---------- splash + name screens ---------- */
+.overlay{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;transition:opacity .6s}
+.overlay.out{opacity:0;pointer-events:none}
+#splash{background:radial-gradient(circle at 50% 50%,#2a0b4d 0%,#12061f 78%);overflow:hidden;cursor:pointer}
+#splash::before{content:"";position:absolute;width:90vmin;height:90vmin;border-radius:50%;
+  background:radial-gradient(circle,rgba(242,168,29,.32),transparent 65%);animation:pulse 2.6s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.25);opacity:.6}}
+.suit{position:absolute;font-size:16vmin;color:#fff;opacity:.07;animation:drift 7s ease-in-out infinite}
+.suit:nth-child(1){left:8%;top:12%}.suit:nth-child(2){right:10%;top:16%;animation-delay:-2s}
+.suit:nth-child(3){left:14%;bottom:10%;animation-delay:-4s}.suit:nth-child(4){right:12%;bottom:12%;animation-delay:-6s}
+@keyframes drift{50%{transform:translateY(-4vmin) rotate(8deg)}}
+.logo{position:relative;text-align:center}
+.ash{display:flex;justify-content:center;gap:1.6vmin;filter:drop-shadow(0 0 2.6vmin rgba(242,168,29,.55))}
+.ash span{display:inline-block;font:900 clamp(64px,30vmin,240px)/1 "Arial Black",Impact,system-ui,sans-serif;
+  background:linear-gradient(180deg,#fff3c4 0%,#f2a81d 55%,#9a5f00 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  opacity:0;transform:translateY(9vmin) scale(1.7);filter:blur(1.6vmin);
+  animation:letter .75s cubic-bezier(.2,.9,.3,1) forwards;animation-delay:calc(var(--i) * .16s + .2s)}
+@keyframes letter{to{opacity:1;transform:none;filter:blur(0)}}
+.bar{height:.7vmin;width:0;margin:1.6vmin auto 1.8vmin;border-radius:1vmin;
+  background:linear-gradient(90deg,transparent,#f2a81d,#fff3c4,#f2a81d,transparent);
+  animation:bar .9s ease-out 1s forwards}
+@keyframes bar{to{width:72%}}
+.gaming{font:800 clamp(18px,7vmin,54px) system-ui,sans-serif;letter-spacing:1.1em;margin-right:-1.1em;color:#fffdf6;
+  opacity:0;transform:translateY(3vmin);animation:rise .8s ease-out 1.25s forwards}
+@keyframes rise{to{opacity:1;transform:none}}
+#nameScreen{display:none;align-items:flex-start;padding-top:7vmin;
+  background:radial-gradient(circle at 50% 40%,#2a0b4d 0%,#12061f 80%)}
+.panel{width:min(88%,540px);border-radius:2.6vmin;padding:3.4vmin 3.8vmin;color:#fff;
+  background:linear-gradient(160deg,#2c2344,#17122a);
+  box-shadow:inset 0 0 0 .4vmin #b98a2e,inset 0 0 0 1.4vmin #17122a,inset 0 0 0 1.7vmin rgba(212,174,90,.75),0 2vmin 5vmin rgba(0,0,0,.55)}
+.panel h2{font:800 clamp(17px,4.4vmin,32px) system-ui,sans-serif;color:#f2c25a;text-align:center;margin-bottom:2.4vmin}
+.panel .row{display:flex;gap:2vmin}
+.panel input{flex:1;min-width:0;font:600 max(16px,4vmin) system-ui,sans-serif;padding:2vmin 2.4vmin;border:0;border-radius:1.6vmin;
+  background:#fffdf6;color:#1a1b2e}
+.panel button{border:0;border-radius:1.6vmin;padding:0 4.4vmin;background:var(--marigold);color:var(--ink);
+  font:800 max(16px,4vmin) system-ui,sans-serif;cursor:pointer}
+@media (prefers-reduced-motion:reduce){
+  .ash span,.bar,.gaming{animation-duration:.01s;animation-delay:0s}
+  #splash::before,.suit{animation:none}
+}
 @media (prefers-reduced-motion:reduce){
   #app{animation:none}
   .inner{transition-duration:.01s}
@@ -79,6 +125,25 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none;background:#3a0f5
 <div id="app">
   <div class="grid" id="grid"></div>
   <div class="rail"><button id="go" class="draw">Draw</button></div>
+
+  <div id="splash" class="overlay" role="img" aria-label="ASH GAMING">
+    <span class="suit">&#9824;</span><span class="suit">&#9829;</span><span class="suit">&#9830;</span><span class="suit">&#9827;</span>
+    <div class="logo">
+      <div class="ash"><span style="--i:0">A</span><span style="--i:1">S</span><span style="--i:2">H</span></div>
+      <div class="bar"></div>
+      <div class="gaming">GAMING</div>
+    </div>
+  </div>
+
+  <div id="nameScreen" class="overlay">
+    <form class="panel" id="nameForm" autocomplete="off">
+      <h2>Enter your name</h2>
+      <div class="row">
+        <input id="nameInput" type="text" maxlength="20" placeholder="Your name" aria-label="Your name" autocapitalize="words" enterkeyhint="go">
+        <button type="submit">Play</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <script>
@@ -126,6 +191,31 @@ for (let i = 0; i < 6; i++) {
   cards.push({ inner: c.querySelector(".inner"), front: c.querySelector(".front"), cur: null, timer: null });
 }
 
+const store = {
+  get(k){ try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v){ try { localStorage.setItem(k, v); } catch (e) {} }
+};
+let playerName = store.get("jm-name") || "";
+let playerId = store.get("jm-id") || "";
+if (!playerId) {
+  playerId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : "p" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+  store.set("jm-id", playerId);
+}
+const jsonHeaders = { "Content-Type": "application/json" };
+async function join(){
+  try {
+    const r = await fetch("/api/join", { method: "POST", headers: jsonHeaders, body: JSON.stringify({ id: playerId, name: playerName }) });
+    return r.ok;
+  } catch (e) { return false; }
+}
+async function requestDraw(){
+  const call = () => fetch("/api/draw", { method: "POST", headers: jsonHeaders, body: JSON.stringify({ id: playerId }) });
+  let r = await call();
+  if (r.status === 404) { if (!(await join())) throw new Error(); r = await call(); }
+  if (!r.ok) throw new Error();
+  return r.json();
+}
+
 const btn = document.getElementById("go");
 let run = 0, mode = "draw";
 function setMode(m){ mode = m; btn.textContent = m === "draw" ? "Draw" : "Ready"; btn.className = m; }
@@ -163,7 +253,7 @@ async function startDraw(){
   let dice;
   try {
     const [r] = await Promise.all([
-      fetch("/api/draw", { method: "POST" }).then(x => { if (!x.ok) throw new Error(); return x.json(); }),
+      requestDraw(),
       wait(1700)
     ]);
     dice = r.dice;
@@ -191,6 +281,34 @@ async function startDraw(){
 }
 
 btn.onclick = () => { goFullscreen(); if (mode === "draw") startDraw(); else reset(); };
+
+/* ---------- splash, then ask a new player for a name ---------- */
+const splash = document.getElementById("splash");
+const nameScreen = document.getElementById("nameScreen");
+const nameInput = document.getElementById("nameInput");
+let booted = false;
+function hide(el){ el.classList.add("out"); setTimeout(() => { el.style.display = "none"; }, 650); }
+function afterSplash(){
+  if (booted) return;
+  booted = true;
+  hide(splash);
+  if (playerName) { join(); }
+  else { nameScreen.style.display = "flex"; setTimeout(() => nameInput.focus(), 150); }
+}
+setTimeout(afterSplash, 3600);
+splash.onclick = () => { goFullscreen(); afterSplash(); };
+
+document.getElementById("nameForm").onsubmit = e => {
+  e.preventDefault();
+  const n = nameInput.value.replace(/\s+/g, " ").trim().slice(0, 20);
+  if (!n) { nameInput.focus(); return; }
+  playerName = n; store.set("jm-name", n);
+  goFullscreen();
+  nameInput.blur();
+  hide(nameScreen);
+  join();
+};
+if ("serviceWorker" in navigator) { window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {})); }
 </script>
 </body>
 </html>
