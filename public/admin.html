@@ -10,12 +10,14 @@
 body{font-family:system-ui,sans-serif;background:#fbf4e4;color:#1a1b2e;margin:0;padding:20px}
 main{max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
 h1{font-size:1.4rem;margin:0}
-label{font-weight:600;font-size:.9rem}
+label{font-weight:600;font-size:.9rem;display:block;margin-bottom:6px}
 input,select,button{font:inherit;padding:12px;border-radius:10px;border:2px solid #1a1b2e;background:#fff;width:100%}
 button{background:#1a1b2e;color:#fff;font-weight:700;cursor:pointer}
 button.alt{background:#fff;color:#1a1b2e}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 #status{padding:12px;border-radius:10px;background:#fff;border:2px dashed #1a1b2e;min-height:3em}
+small{opacity:.7}
 </style>
 </head>
 <body>
@@ -26,26 +28,37 @@ button.alt{background:#fff;color:#1a1b2e}
     <input id="key" type="password" autocomplete="off">
   </div>
   <div>
-    <label>Result for the next draw (6 dice)</label>
+    <label for="player">Player</label>
+    <select id="player"></select>
+    <small>● online now, ○ away. The list refreshes by itself.</small>
+  </div>
+  <div>
+    <label>Result for that player's next draw: cards 1 to 6 (left to right, top row then bottom row)</label>
     <div class="grid" id="grid"></div>
   </div>
-  <button id="set">Set next draw</button>
-  <button class="alt" id="clear">Clear (next draw is random)</button>
-  <div id="status">Enter your key, then set a result.</div>
+  <button id="set">Set next draw for this player</button>
+  <div class="two">
+    <button class="alt" id="clear">Clear this player</button>
+    <button class="alt" id="clearAll">Clear everyone</button>
+  </div>
+  <div id="status">Enter your key to load the players.</div>
 </main>
 <script>
 const SYMBOLS = ["flag","crown","heart","spade","diamond","club"];
 const NAME = {flag:"Flag",crown:"Crown",heart:"Heart",spade:"Spade",diamond:"Diamond",club:"Club"};
-const grid = document.getElementById("grid"), keyEl = document.getElementById("key"), st = document.getElementById("status");
+const grid = document.getElementById("grid"), keyEl = document.getElementById("key"),
+      st = document.getElementById("status"), sel = document.getElementById("player");
+let data = { players: [], anyQueued: null, now: Date.now() };
 try { keyEl.value = sessionStorage.getItem("jm-key") || ""; } catch (e) {}
 
 for (let i = 0; i < 6; i++) {
   const s = document.createElement("select");
-  s.setAttribute("aria-label", "Die " + (i + 1));
+  s.setAttribute("aria-label", "Card " + (i + 1));
   SYMBOLS.forEach(v => { const o = document.createElement("option"); o.value = v; o.textContent = NAME[v]; s.appendChild(o); });
   grid.appendChild(s);
 }
 const picks = () => [...grid.children].map(s => s.value);
+const list = q => q.map(x => NAME[x]).join(", ");
 
 async function call(path, body) {
   try { sessionStorage.setItem("jm-key", keyEl.value); } catch (e) {}
@@ -54,23 +67,61 @@ async function call(path, body) {
     headers: { "Content-Type": "application/json", "x-admin-key": keyEl.value },
     body: body === undefined ? undefined : JSON.stringify(body)
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "Request failed");
-  return data;
+  const d = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(d.error || "Request failed");
+  return d;
 }
-const show = q => q ? "Next draw is set: " + q.map(x => NAME[x]).join(", ") : "No result set. The next draw will be random.";
+
+function renderPlayers() {
+  const keep = sel.value || "any";
+  const counts = {};
+  data.players.forEach(p => counts[p.name] = (counts[p.name] || 0) + 1);
+  sel.innerHTML = "";
+  const add = (value, text) => { const o = document.createElement("option"); o.value = value; o.textContent = text; sel.appendChild(o); };
+  add("any", "Any player (next draw by anyone)" + (data.anyQueued ? "  ✓ set" : ""));
+  data.players.forEach(p => {
+    const online = data.now - p.lastSeen < 120000;
+    const dup = counts[p.name] > 1 ? " #" + p.id.slice(-4) : "";
+    add(p.id, (online ? "● " : "○ ") + p.name + dup + (p.queued ? "  ✓ set" : ""));
+  });
+  sel.value = [...sel.options].some(o => o.value === keep) ? keep : "any";
+  showSelected();
+}
+
+function showSelected() {
+  if (sel.value === "any") {
+    st.textContent = data.anyQueued ? "Any player: next draw is " + list(data.anyQueued) : "Any player: no result set (random).";
+    return;
+  }
+  const p = data.players.find(x => x.id === sel.value);
+  if (!p) { st.textContent = "Player not found."; return; }
+  st.textContent = p.queued ? p.name + ": next draw is " + list(p.queued) : p.name + ": no result set (random).";
+}
+
+async function load() {
+  if (!keyEl.value) return;
+  try { data = await call("/api/admin/players"); renderPlayers(); }
+  catch (e) { st.textContent = e.message; }
+}
+
+sel.addEventListener("change", showSelected);
+keyEl.addEventListener("change", load);
 
 document.getElementById("set").onclick = async () => {
-  try { const d = await call("/api/admin/set", { dice: picks() }); st.textContent = show(d.queued); }
+  try { await call("/api/admin/set", { playerId: sel.value, dice: picks() }); await load(); }
   catch (e) { st.textContent = e.message; }
 };
 document.getElementById("clear").onclick = async () => {
-  try { const d = await call("/api/admin/clear", {}); st.textContent = show(d.queued); }
+  try { await call("/api/admin/clear", { playerId: sel.value }); await load(); }
   catch (e) { st.textContent = e.message; }
 };
-keyEl.addEventListener("change", async () => {
-  try { const d = await call("/api/admin/status"); st.textContent = show(d.queued); } catch (e) { st.textContent = e.message; }
-});
+document.getElementById("clearAll").onclick = async () => {
+  try { await call("/api/admin/clear", { playerId: "all" }); await load(); }
+  catch (e) { st.textContent = e.message; }
+};
+
+load();
+setInterval(load, 4000);
 </script>
 </body>
 </html>
